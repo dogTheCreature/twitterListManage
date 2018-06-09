@@ -1,0 +1,20 @@
+ul
+  li
+    button(id='updateLists') リスト一覧更新(未実装)
+  li
+    button(id='getFriends') フォロー一覧取得
+table#lists
+  thead
+    th リスト名
+    th 説明
+    th 登録数
+    th 操作
+    tbody
+      each list in lists
+        tr
+          td(class='list_name')= list.name
+          td= list.description
+          td(class='numeric')= list.member_count
+          td
+            button(class='button_get_members', data-id=list.id_str) 一覧取得
+    

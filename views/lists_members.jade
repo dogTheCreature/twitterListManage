@@ -1,0 +1,29 @@
+div(id='div_' + listId)
+  ul(class='list_control')
+    if listId != 'friends'
+      li
+        button(class='button_update_membersm', id='update_' + listId, onclick='updateMembers("#{listId}")') 更新
+    li
+      button(class='button_move_members', id='move_' + listId, onClick='moveMembers("#{listId}")') チェックしたユーザーを次のリストに登録する
+      select(id='move_from_#{listId}_to', name='move_from_#{listId}_to', onChange='updateMoveButtonState("#{listId}")')
+        option(value='0') -- Select --
+  table(class='members', id='table_' + listId, data-id=listId)
+    thead
+      th
+      th #
+      th
+      th ユーザー名
+      th フォロー
+      th フォロワー
+    - var i = 0;
+      each member in members
+        tr(onclick='checkRow(event)', data-id=member.id_str)
+          td
+            input(type='checkbox', name=member.id_str)
+          td(class='numeric')= ++i
+          td(class='profile_image')
+            img(src=member.profile_image_url_https)
+          td= member.name + '@' + member.screen_name
+          td(class='numeric')= member.friends_count
+          td(class='numeric')= member.followers_count
+    

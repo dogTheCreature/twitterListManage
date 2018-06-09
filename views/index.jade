@@ -1,0 +1,16 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/jquery-ui.min.css')
+    each script in scripts
+      script(type='text/javascript', src= script)
+  body
+    h1 犬畜生のリスト管理
+    div#lists_placeholder
+    div#register_complete_dialog(title='登録成功', style='display: none; z-index:20000;')
+      p リストへの登録が完了しました。
+      
+    div#initialize_error_dialog(title='エラー', style='display: none; z-index:20000;')
+      p ページの読み込みに失敗しました。時間を置いて再実行して下さい。
