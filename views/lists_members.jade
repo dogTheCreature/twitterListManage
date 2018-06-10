@@ -1,12 +1,24 @@
-div(id='div_' + listId)
+div(id='div_' + listId).list_frame
   ul(class='list_control')
     if listId != 'friends'
       li
         button(class='button_update_membersm', id='update_' + listId, onclick='updateMembers("#{listId}")') 更新
+    li ｜
+    li チェックしたユーザーを
     li
-      button(class='button_move_members', id='move_' + listId, onClick='moveMembers("#{listId}")') チェックしたユーザーを次のリストに登録する
-      select(id='move_from_#{listId}_to', name='move_from_#{listId}_to', onChange='updateMoveButtonState("#{listId}")')
+      select(id='move_from_#{listId}_to', name='move_from_#{listId}_to', onChange='updateButtonState("#{listId}")')
         option(value='0') -- Select --
+    li に
+    li
+      button(class='button_register_members', id='register_' + listId, onClick='registerMembers("#{listId}")') 追加
+    li
+      button(class='button_move_members', id='move_' + listId, onClick='moveMembers("#{listId}")') 移動
+    li ｜
+    li
+      button(class='button_remove_members', id='remove_' + listId, onClick='removeMembers("#{listId}")') 登録解除
+    li ｜
+    li
+      button(class='button_close', id='close_' + listId, onClick='closeMembersList("#{listId}")') 閉じる
   table(class='members', id='table_' + listId, data-id=listId)
     thead
       th
@@ -22,7 +34,8 @@ div(id='div_' + listId)
             input(type='checkbox', name=member.id_str)
           td(class='numeric')= ++i
           td(class='profile_image')
-            img(src=member.profile_image_url_https)
+            a(href='https://twitter.com/' + member.screen_name, target='_blank')
+              img(src=member.profile_image_url_https)
           td= member.name + '@' + member.screen_name
           td(class='numeric')= member.friends_count
           td(class='numeric')= member.followers_count

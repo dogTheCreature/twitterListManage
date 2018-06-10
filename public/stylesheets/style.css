@@ -84,3 +84,20 @@ td.numeric {
 button:hover:enabled {
   cursor: pointer;
 }
+
+ul.list_control {
+  padding-left: 0;
+}
+
+ul.list_control li {
+  display: inline;
+  padding: 0 3px;
+}
+
+div#container {
+  display: table;
+}
+
+div.list_frame {
+  display: table-cell;
+}

@@ -1,3 +1,4 @@
+// TODO アカウント情報とかリスト情報とかクライアント側に持ってないと取り回しが不便すぎる
 $(document).ready(function() {
   $.LoadingOverlay('show', {zIndex: 100});
 
@@ -34,24 +35,17 @@ function getFriends() {
     type: 'GET',
     contentType: 'text/html'
   }).done(function(html) {
-    $target.after(html);
-    const $appended = $target.next();
+    const $appended = $(html);
+    $('#div_lists').after($appended);
+
+    // $target.after(html);
+    // const $appended = $target.next();
+    // TODO 後から見出しをつけ足しているのがアホくさい
     const $heading = $('<h2>');
     $heading.text('フォロー中');
     $appended.prepend($heading);
-    const $listTable = $("table#lists tbody");
-    const $select = $appended.find('select');
-    $listTable.find('tr').each(function(i, tr) {
-      const $tr = $(tr);
-      const listId = $tr.find('button').attr('data-id');
-      const listName = $tr.find('td.list_name').text();
-      const $option = $('<option>');
-      $option.attr('value', listId);
-      $option.text(listName);
-      $select.append($option);
-    });
-    
-    updateMoveButtonState('friends');
+    setupSelection($appended, 'friends');
+    updateButtonState('friends');
   }).fail(function(jqXHR, textStatus, errorThrown) {
     alert('フォロー一覧を取得できませんでした。' + errorThrown);
     $target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
@@ -68,29 +62,34 @@ function getMembers($button) {
       type: 'GET',
       contentType: 'text/html'
     }).done(function(html) {
-      $target.after(html);
-      const $appended = $target.next();
+      const $appended = $(html);
+      $('#div_lists').after($appended);
       
       const $heading = $('<h2>');
       $heading.text($button.closest('tr').find('.list_name').text());
       $appended.prepend($heading);
-      const $listTable = $button.closest('tbody');
-      const $select = $appended.find('select');
-      $listTable.find('tr').each(function(i, tr) {
-        const $tr = $(tr);
-        const listId = $tr.find('button').attr('data-id');
-        if (id == listId) return; 
-        const listName = $tr.find('td.list_name').text();
-        const $option = $('<option>');
-        $option.attr('value', listId);
-        $option.text(listName);
-        $select.append($option);
-      });
-      updateMoveButtonState(id);
+      setupSelection($appended, id);
+      updateButtonState(id);
     }).fail(function(jqXHR, textStatus, errorThrown) {
       alert('アカウント一覧を取得できませんでした。' + errorThrown);
       reject($target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  '))));
     });
+  });
+}
+
+function setupSelection($appended, id) {
+  const $listTable = $('table#lists').find('tbody');
+  const $select = $appended.find('select');
+  $listTable.find('tr').each(function (i, tr) {
+    const $tr = $(tr);
+    const listId = $tr.find('button').attr('data-id');
+    if (id == listId)
+      return;
+    const listName = $tr.find('td.list_name').text();
+    const $option = $('<option>');
+    $option.attr('value', listId);
+    $option.text(listName);
+    $select.append($option);
   });
 }
 
@@ -101,11 +100,12 @@ function checkRow(event) {
   const userId = $tr.attr('data-id');
   const $checkBox = $tr.find('input[name=' + userId + ']');
   $checkBox.prop('checked', !$checkBox.prop('checked'));
-  updateMoveButtonState($target.closest('table').attr('data-id'));
+  updateButtonState($target.closest('table').attr('data-id'));
 }
 
 function updateMembers(listId) {
   const $target = $('div#div_' + listId);
+  const listName = $target.find('h2').text();
   $target.LoadingOverlay("show", {zIndex: 100});
 
   $.ajax('/lists/members/update/' + listId, {
@@ -113,6 +113,12 @@ function updateMembers(listId) {
     contentType: 'text/html'
   }).done(function(html) {
     $target.replaceWith(html);
+    const $replaced = $('div#div_' + listId);
+    const $heading = $('<h2>');
+    $heading.text(listName);
+    $replaced.prepend($heading);
+    setupSelection(replaced, listId);
+    updateButtonState(listId);
   }).fail(function(jqXHR, textStatus, errorThrown) {
     alert('アカウント一覧を取得できませんでした。' + errorThrown);
     $('table#lists').after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
@@ -121,15 +127,17 @@ function updateMembers(listId) {
   });
 }
 
-function updateMoveButtonState(listId) {
+function updateButtonState(listId) {
   const $listBox = $('#div_' + listId);
   const anyMemberChecked = $listBox.find('input:checked')[0];
   const destinationSelected = $listBox.find('option:selected').text() != '-- Select --';
 
+  $listBox.find('.button_register_members').prop('disabled', !(anyMemberChecked && destinationSelected));
   $listBox.find('.button_move_members').prop('disabled', !(anyMemberChecked && destinationSelected));
+  $listBox.find('.button_remove_members').prop('disabled', !(anyMemberChecked));
 }
 
-function moveMembers(fromListId) {
+function registerMembers(fromListId) {
   $.LoadingOverlay('show', {zIndex: 100});
   // チェック済みのメンバーを集める
   const ids = [];
@@ -149,7 +157,7 @@ function moveMembers(fromListId) {
     $('#register_complete_dialog').dialog({
       modal: true,
       buttons: {
-        Ok: function() {
+        OK: function() {
           $(this).dialog('close');
           $.LoadingOverlay('hide');
         }
