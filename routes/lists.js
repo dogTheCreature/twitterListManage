@@ -6,30 +6,33 @@ const {promisify} = require('util');
 const _ = require('underscore');
 
 router.get('/list', async function(req, res, next) {
-  const client = req.app.locals.client;
+  const twitter = req.app.locals.twitter;
   const cachePath = 'cache/lists.json';
 
   if (req.query.force && fs.existsSync(cachePath)) {
     fs.unlinkSync(cachePath);
   } 
 
-  const lists = await getLists(client);
+  const lists = await getLists(twitter);
   res.render('lists', {lists: lists});
 });
 
+// 表示更新
 router.get('/members/update/:listId', function(req, res, next) {
   const listId = req.params.listId;
   const cachePath = 'cache/members/' + listId + '.json';
+  // キャッシュが既にあったら一度削除
   if (fs.existsSync(cachePath)) {
     fs.unlinkSync(cachePath);
   }
   res.status(303);
+  // メンバー取得処理にリダイレクト
   res.redirect(req.baseUrl + '/members/' + listId);
 });
 
 /* GET home page. */
 router.get('/members/:listId', async function(req, res, next) {
-  const client = req.app.locals.client;
+  const twitter = req.app.locals.twitter;
 
   const listId = req.params.listId;
 
@@ -39,7 +42,7 @@ router.get('/members/:listId', async function(req, res, next) {
     members = JSON.parse(fs.readFileSync(cachePath));
   } else {
     try {
-      members = await getAllMembers(client, listId);
+      members = await getAllMembers(twitter, listId);
     } catch (err) {
       res.status(503);
       res.render('error', {message: err, error: {status: 503, stack: ""}} );
@@ -52,14 +55,15 @@ router.get('/members/:listId', async function(req, res, next) {
   res.render('lists_members', {listId: listId, members: members});
 });
 
+// ユーザ登録
 router.post('/members/create_all', async function(req, res, next) {
-  const client = req.app.locals.client;
+  const twitter = req.app.locals.twitter;
   const ids = req.body.ids;
   const strIds = ids.join(',');
 
   // TODO 100個超えケア
   try {
-    client.post('lists/members/create_all', {
+    twitter.post('lists/members/create_all', {
       list_id: req.body.toListId,
       user_id: strIds
     }, function(err, data, response) {
@@ -67,6 +71,27 @@ router.post('/members/create_all', async function(req, res, next) {
       res.send();
     });
   } catch (err) {
+    res.status(503);
+    res.send(err);
+  }
+});
+
+// ユーザ登録解除
+router.post('/members/destroy_all', async function(req, res, next) {
+  const twitter = req.app.locals.twitter;
+  const ids = req.body.ids;
+  const strIds = ids.join(',');
+
+  try {
+    twitter.post('lists/members/destroy_all', {
+      list_id: req.body.listId,
+      user_id: strIds
+    }, function(err, data, response) {
+      console.debug(data);
+      res.status(200);
+      res.send();
+    });
+  } catch(err) {
     res.status(503);
     res.send(err);
   }
@@ -86,13 +111,13 @@ async function getAllMembers(client, listId) {
 }
 
 // TODO どっかに移動
-function getMembers(client, options) {
+function getMembers(twitter, options) {
     const listId = options.listId;
     const cursor = options.cursor;
 
     // console.log('listID: ' + listId);
     return new Promise(function(resolve, reject) {
-      client.get('lists/members', {list_id: listId, cursor: cursor}, function(err, data, response) {
+      twitter.get('lists/members', {list_id: listId, cursor: cursor}, function(err, data, response) {
         if (err) reject(err);
         resolve(data);
       });
@@ -102,7 +127,7 @@ function getMembers(client, options) {
 }
 
 // TODO どっか別のファイルにまとめる
-function getLists(client, disableCache) {
+function getLists(twitter, disableCache) {
   let userName;
   if (!disableCache && fs.existsSync('cache/lists.json')) {
     const readFile = promisify(fs.readFile);
@@ -111,7 +136,7 @@ function getLists(client, disableCache) {
     });
   } else {
     return new Promise(function(resolve, reject) {
-      client.get('account/settings', function(err, data, response) {
+      twitter.get('account/settings', function(err, data, response) {
         if (err) reject(err);
         resolve(data); 
       });
@@ -119,7 +144,7 @@ function getLists(client, disableCache) {
       userName = user.screen_name;
       console.log('Account\n' + JSON.stringify(user, null, '  '));
       return new Promise(function(resolve, reject) {
-        client.get('lists/list', {screen_name: user.screen_name}, function(err, data, response) {
+        twitter.get('lists/list', {screen_name: user.screen_name}, function(err, data, response) {
           if (err) throw reject(err);
           resolve(data);
         });

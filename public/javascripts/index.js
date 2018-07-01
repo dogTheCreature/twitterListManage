@@ -12,7 +12,9 @@ $(document).ready(function() {
 
     $('table#lists button.button_get_members').click(function(event) {
       const $button = $(event.target); // リスト一覧の中のボタン
-      getMembers($button);
+      const id = $button.attr('data-id');
+      const listName = $button.closest('tr').find('.list_name').text()
+      getMembers(id, listName);
     });
     $.LoadingOverlay('hide');
   }).fail(function() {
@@ -54,8 +56,7 @@ function getFriends() {
   });
 }
 
-function getMembers($button) {
-  const id = $button.attr('data-id');
+function getMembers(id, listName) {
   return new Promise(function(resolve, reject) {
     const $target = $('table#lists');
     $.ajax('/lists/members/' + id, {
@@ -66,7 +67,7 @@ function getMembers($button) {
       $('#div_lists').after($appended);
       
       const $heading = $('<h2>');
-      $heading.text($button.closest('tr').find('.list_name').text());
+      $heading.text(listName);
       $appended.prepend($heading);
       setupSelection($appended, id);
       updateButtonState(id);
@@ -103,6 +104,7 @@ function checkRow(event) {
   updateButtonState($target.closest('table').attr('data-id'));
 }
 
+// listIdで指定されたリストの一覧を更新する
 function updateMembers(listId) {
   const $target = $('div#div_' + listId);
   const listName = $target.find('h2').text();
@@ -117,7 +119,7 @@ function updateMembers(listId) {
     const $heading = $('<h2>');
     $heading.text(listName);
     $replaced.prepend($heading);
-    setupSelection(replaced, listId);
+    setupSelection($replaced, listId);
     updateButtonState(listId);
   }).fail(function(jqXHR, textStatus, errorThrown) {
     alert('アカウント一覧を取得できませんでした。' + errorThrown);
@@ -142,18 +144,13 @@ function registerMembers(fromListId) {
   // チェック済みのメンバーを集める
   const ids = [];
   const $div = $('div#div_' + fromListId);
-  const toListId = $div.find('option:selected').val();
-
   $div.find('input:checked').each(function(i, checkbox) {
     ids.push($(checkbox).attr('name'));
   });
-  $.ajax('/lists/members/create_all/', {
-    type: 'POST',
-    data: {
-      ids: ids,
-      toListId: toListId
-    }
-  }).done(function(html) {
+  // 宛先IDを取得
+  const toListId = $div.find('option:selected').val();
+
+  registerMembersInternal(ids, toListId, function() {
     $('#register_complete_dialog').dialog({
       modal: true,
       buttons: {
@@ -163,9 +160,73 @@ function registerMembers(fromListId) {
         }
       }
     });
-  }).fail(function(jqXHR, textStatus, errorThrown) {
-    alert('リストの登録に失敗しました。' + errorThrown);
-    $target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
-    $.LoadingOverlay('hide');
+  }, function(jqXHR, textStatus, errorThrown) {
+      alert('リストの登録に失敗しました。' + errorThrown);
+      $target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
+      $.LoadingOverlay('hide');
   });
+}
+
+function moveMembers(fromListId) {
+  // チェック済みのメンバーを集める
+  const $div = $('div#div_' + fromListId);
+  const ids = getCheckedMembers($div);
+  // 宛先IDを取得
+  const toListId = $div.find('option:selected').val();
+  const toListName = $div.find('option:selected').text();
+
+  registerMembersInternal(ids, toListId, function() {
+    // TODO 追加された側のリストを表示(既に表示されている場合は更新)
+    if ($('div#div_' + toListId)[0]) {
+      updateMembers(toListId);
+    } else {
+      getMembers(toListId, toListName);
+    }
+
+    // 移動元のリストから削除
+    $.ajax('/lists/members/destroy_all/', {
+      type: 'POST',
+      data: {
+        ids: ids,
+        listId: fromListId
+      }
+    }).done(function(html) {
+      // 移動元のリストの表示を更新
+      updateMembers(fromListId);
+
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+      alert('リストからの登録解除に失敗しました。' + errorThrown);
+      $target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
+      $.LoadingOverlay('hide');
+    });
+    
+  }, function(jqXHR, textStatus, errorThrown) {
+      alert('リストの登録に失敗しました。' + errorThrown);
+      $target.after($('<pre>').text(JSON.stringify(jqXHR, null, '  ')));
+      $.LoadingOverlay('hide');
+  });
+}
+
+function getCheckedMembers($div) {
+  const ids = [];
+  $div.find('input:checked').each(function (i, checkbox) {
+    ids.push($(checkbox).attr('name'));
+  });
+  return ids;
+}
+
+
+function registerMembersInternal(ids, toListId, onSuccess, onFail) {
+  $.ajax('/lists/members/create_all/', {
+    type: 'POST',
+    data: {
+      ids: ids,
+      toListId: toListId
+    }
+  }).done(onSuccess).fail(onFail);
+}
+
+function closeMembersList(listId) {
+  const $target = $('div#div_' + listId);
+  $target.remove();
 }

@@ -26,7 +26,7 @@ app.use('/', indexRouter);
 app.use('/lists', listsRouter);
 
 const tokens = JSON.parse(fs.readFileSync('data/tokens.json'));
-app.locals.client = new Twit(tokens);
+app.locals.twitter = new Twit(tokens);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

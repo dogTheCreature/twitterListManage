@@ -7,7 +7,6 @@ const _ = require('underscore')
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  const client = req.app.locals.client;
   res.render('index', {
     title: 'Express',
     scripts: [
@@ -18,12 +17,12 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/friends', async function(req, res, next) {
-  const client = req.app.locals.client;
+  const twitter = req.app.locals.twitter;
   const friends = [];
   var cursor = undefined;
   while (cursor != 0) {
     try {
-      const response = await getFriends(client, cursor);
+      const response = await getFriends(twitter, cursor);
       cursor = response.next_cursor_str;
       friends.push.apply(friends, response.users);
     } catch (err) {
@@ -36,59 +35,13 @@ router.get('/friends', async function(req, res, next) {
   res.render('lists_members', {listId: 'friends', members: friends});
 });
 
-function getFriends(client, cursor) {
+function getFriends(twitter, cursor) {
   return new Promise(function(resolve, reject) {
-    client.get('friends/list', {count: 200, cursor: cursor}, function(err, data, response) {
+    twitter.get('friends/list', {count: 200, cursor: cursor}, function(err, data, response) {
       if (err) reject(err);
       resolve(data);
     })
   });
-}
-
-// TODO どっか別のファイルにまとめる
-function getLists(client, disableCache) {
-  let userName;
-  if (!disableCache && fs.existsSync('cache/lists.json')) {
-    const readFile = promisify(fs.readFile);
-    return readFile('cache/lists.json').then(function(json) {
-      return JSON.parse(json);
-    });
-  } else {
-    return new Promise(function(resolve, reject) {
-      client.get('account/settings', function(err, data, response) {
-        if (err) reject(err);
-        resolve(data); 
-      });
-    }).then(function(user) {
-      userName = user.screen_name;
-      console.log('Account\n' + JSON.stringify(user, null, '  '));
-      return new Promise(function(resolve, reject) {
-        client.get('lists/list', {screen_name: user.screen_name}, function(err, data, response) {
-          if (err) throw reject(err);
-          resolve(data);
-        });
-      });
-    }).then(function(lists) {
-      const sorted = _.chain(lists).filter(function(elem) {
-        return elem.user.screen_name == userName;
-      }).map(function(elem) {
-        return _.pick(elem, 'id_str', 'name', 'description', 'member_count', 'user');
-      }).value().sort(function(a, b) {
-        if (a < b) {
-          return -1;
-        } else if (a == b) {
-          return 0;
-        } else {
-          return 1;
-        }
-      });
-      console.log('lists\n' + JSON.stringify(sorted, null, '  '));
-      if (!_.isEmpty(sorted)) {
-        fs.writeFileSync('cache/lists.json', JSON.stringify(sorted, null, '  '));
-      }
-      return sorted;
-    });
-  }
 }
 
 module.exports = router;
