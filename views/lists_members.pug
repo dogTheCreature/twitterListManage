@@ -2,23 +2,23 @@ div(id='div_' + listId).list_frame
   ul(class='list_control')
     if listId != 'friends'
       li
-        button(class='button_update_membersm', id='update_' + listId, onclick='updateMembers("#{listId}")') 更新
+        button(class='button_update_membersm', id='update_' + listId, onclick='updateMembers("' + listId + '")') 更新
     li ｜
     li チェックしたユーザーを
     li
-      select(id='move_from_#{listId}_to', name='move_from_#{listId}_to', onChange='updateButtonState("#{listId}")')
+      select(id='move_from_#{listId}_to', name='move_from_#{listId}_to', onChange='updateButtonState("' + listId + '")')
         option(value='0') -- Select --
     li に
     li
-      button(class='button_register_members', id='register_' + listId, onClick='registerMembers("#{listId}")') 追加
+      button(class='button_register_members', id='register_' + listId, onClick='registerMembers("' + listId + '")') 追加
     li
-      button(class='button_move_members', id='move_' + listId, onClick='moveMembers("#{listId}")') 移動
+      button(class='button_move_members', id='move_' + listId, onClick='moveMembers("' + listId + '")') 移動
     li ｜
     li
-      button(class='button_remove_members', id='remove_' + listId, onClick='removeMembers("#{listId}")') 登録解除
+      button(class='button_remove_members', id='remove_' + listId, onClick='removeMembers("' + listId + '")') 登録解除
     li ｜
     li
-      button(class='button_close', id='close_' + listId, onClick='closeMembersList("#{listId}")') 閉じる
+      button(class='button_close', id='close_' + listId, onClick='closeMembersList("' + listId + '")') 閉じる
   table(class='members', id='table_' + listId, data-id=listId)
     thead
       th
