@@ -9,12 +9,19 @@ const Twit = require('twit');
 
 const indexRouter = require('./routes/index');
 const listsRouter = require('./routes/lists');
+const RateLimit = require('express-rate-limit');
 
 const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+
+var limiter = new RateLimit({
+  windowMs: 1*60*1000, // 1 minute
+  max: 50
+});
+app.use(limiter);
 
 app.use(logger('dev'));
 app.use(express.json());
