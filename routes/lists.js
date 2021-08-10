@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const sanitize = require("sanitize-filename");
 
 const fs = require('fs');
 const {promisify} = require('util');
@@ -19,7 +20,7 @@ router.get('/list', async function(req, res, next) {
 
 // 表示更新
 router.get('/members/update/:listId', function(req, res, next) {
-  const listId = req.params.listId;
+  const listId = sanitize(req.params.listId);
   const cachePath = 'cache/members/' + listId + '.json';
   // キャッシュが既にあったら一度削除
   if (fs.existsSync(cachePath)) {
@@ -34,7 +35,7 @@ router.get('/members/update/:listId', function(req, res, next) {
 router.get('/members/:listId', async function(req, res, next) {
   const twitter = req.app.locals.twitter;
 
-  const listId = req.params.listId;
+  const listId = sanitize(req.params.listId);
 
   var members;
   const cachePath = 'cache/members/' + listId + '.json';
